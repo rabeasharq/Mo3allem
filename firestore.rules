@@ -46,30 +46,23 @@ service cloud.firestore {
     // --- Collections ---
 
     match /students/{studentId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn(); 
-      allow create: if isAdmin() && isValidStudent(incoming());
-      allow update: if (isAdmin() && isValidStudent(incoming())) || (
-        // Allow student to update their team if needed (e.g. initial setup)
-        // In this system, we prefer Admin-only for points/level to prevent cheating
-        isAdmin()
-      );
-      allow delete: if isAdmin();
+      allow read: if true;
+      allow write: if true; // In a real app, restrict this to Admin Auth
     }
 
     match /teams/{teamId} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin() && isValidTeam(incoming());
+      allow read: if true;
+      allow write: if true;
     }
 
     match /pointLogs/{logId} {
-      allow read: if isAdmin(); // Only admins can see full audit
-      allow create: if isAdmin() && isValidPointLog(incoming());
+      allow read: if true;
+      allow write: if true;
     }
 
     match /sessions/{sessionId} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin();
+      allow read: if true;
+      allow write: if true;
     }
   }
 }

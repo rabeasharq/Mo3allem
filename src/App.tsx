@@ -8,40 +8,28 @@ import { LogIn, LogOut, LayoutDashboard, Settings, User } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 export default function App() {
-  const [user, setUser] = useState<any>(null);
+  const [isAdminMode, setIsAdminMode] = useState(false);
   const [view, setView] = useState<'dashboard' | 'admin' | 'student'>('dashboard');
-  const [loading, setLoading] = useState(true);
+  const [pinPrompt, setPinPrompt] = useState(false);
+  const [pin, setPin] = useState('');
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (u) => {
-      setUser(u);
-      setLoading(false);
-    });
-    return () => unsubscribe();
-  }, []);
-
-  const login = async () => {
-    try {
-      const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
-    } catch (error) {
-      console.error("Login failed", error);
+  const loginAsTeacher = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Simple teacher PIN: 2026 (can be changed)
+    if (pin === '2026') {
+      setIsAdminMode(true);
+      setPinPrompt(false);
+      setView('admin');
+      setPin('');
+    } else {
+      alert('الرمز السري غير صحيح');
     }
   };
 
-  const logout = () => signOut(auth);
-
-  if (loading) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center bg-[#f5f5f0] text-[#5A5A40]">
-        <motion.div
-           animate={{ rotate: 360 }}
-           transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-           className="h-12 w-12 border-4 border-[#5A5A40] border-t-transparent rounded-full"
-        />
-      </div>
-    );
-  }
+  const logout = () => {
+    setIsAdminMode(false);
+    setView('dashboard');
+  };
 
   return (
     <div className="min-h-screen bg-[#f5f5f0] text-[#1a1a1a]" dir="rtl font-sans">
@@ -61,7 +49,15 @@ export default function App() {
             <span>اللوحة</span>
           </button>
           
-          {user && (
+          <button 
+            onClick={() => setView('student')}
+            className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${view === 'student' ? 'bg-emerald-100 text-emerald-900' : 'hover:bg-gray-100'}`}
+          >
+            <User size={18} />
+            <span>ملفي</span>
+          </button>
+
+          {isAdminMode ? (
             <>
               <button 
                 onClick={() => setView('admin')}
@@ -71,25 +67,16 @@ export default function App() {
                 <span>الإدارة</span>
               </button>
               <button 
-                onClick={() => setView('student')}
-                className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${view === 'student' ? 'bg-emerald-100 text-emerald-900' : 'hover:bg-gray-100'}`}
-              >
-                <User size={18} />
-                <span>ملفي</span>
-              </button>
-              <button 
                 onClick={logout}
                 className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
               >
                 <LogOut size={18} />
-                <span>خروج</span>
+                <span>خروج المعلم</span>
               </button>
             </>
-          )}
-
-          {!user && (
+          ) : (
             <button 
-              onClick={login}
+              onClick={() => setPinPrompt(true)}
               className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 transition"
             >
               <LogIn size={18} />
@@ -98,6 +85,49 @@ export default function App() {
           )}
         </div>
       </nav>
+
+      {/* PIN Prompt Modal */}
+      <AnimatePresence>
+        {pinPrompt && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white p-8 rounded-3xl shadow-2xl max-w-sm w-full text-center"
+            >
+              <Settings className="mx-auto text-emerald-600 mb-4" size={48} />
+              <h3 className="text-xl font-bold mb-2">منطقة المعلم</h3>
+              <p className="text-gray-500 text-sm mb-6">يرجى إدخال الرمز السري للوصول لأدوات التحكم</p>
+              <form onSubmit={loginAsTeacher} className="space-y-4">
+                <input 
+                  autoFocus
+                  type="password" 
+                  placeholder="الرمز السري..." 
+                  className="w-full text-center py-4 bg-gray-50 rounded-xl border-2 border-transparent focus:border-emerald-500 focus:outline-none text-2xl tracking-[1em]"
+                  value={pin}
+                  onChange={(e) => setPin(e.target.value)}
+                />
+                <div className="grid grid-cols-2 gap-3">
+                  <button 
+                    type="submit"
+                    className="py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition"
+                  >
+                    دخول
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={() => setPinPrompt(false)}
+                    className="py-3 bg-gray-100 text-gray-500 rounded-xl font-bold hover:bg-gray-200 transition"
+                  >
+                    إلغاء
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Main Content Area */}
       <main className="container mx-auto pt-24 pb-12 px-4">
@@ -110,8 +140,8 @@ export default function App() {
             transition={{ duration: 0.3 }}
           >
             {view === 'dashboard' && <Dashboard />}
-            {view === 'admin' && (user ? <AdminTools /> : <div className="text-center py-20 text-gray-400">يرجى تسجيل الدخول للوصول إلى أدوات الإدارة</div>)}
-            {view === 'student' && (user ? <StudentView /> : <div className="text-center py-20 text-gray-400">يرجى تسجيل الدخول لعرض الملف الشخصي</div>)}
+            {view === 'admin' && <AdminTools />}
+            {view === 'student' && <StudentView />}
           </motion.div>
         </AnimatePresence>
       </main>
