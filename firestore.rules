@@ -1,0 +1,75 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helpers ---
+    function isSignedIn() { return request.auth != null; }
+    function isVerified() { return isSignedIn() && request.auth.token.email_verified == true; }
+    function isAdmin() { return isVerified() && request.auth.token.email == 'rabeasharq2024@gmail.com'; }
+    function isOwner(uid) { return isSignedIn() && request.auth.uid == uid; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+
+    // --- Validation Helpers ---
+    function isValidStudent(data) {
+      return data.keys().hasAll(['name', 'teamId', 'grade', 'points', 'totalPoints', 'level'])
+        && data.keys().size() <= 8
+        && data.name is string && data.name.size() <= 100
+        && data.teamId is string && isValidId(data.teamId)
+        && data.grade in [7, 8, 9]
+        && data.points is map
+        && data.totalPoints is int
+        && data.level in ['Beginner', 'Advanced', 'Professional', 'Expert'];
+    }
+
+    function isValidTeam(data) {
+      return data.keys().hasAll(['name', 'totalPoints'])
+        && data.keys().size() <= 5
+        && data.name is string && data.name.size() <= 100
+        && data.totalPoints is int;
+    }
+
+    function isValidPointLog(data) {
+      return data.keys().hasAll(['studentId', 'skill', 'points', 'timestamp'])
+        && data.keys().size() <= 6
+        && data.studentId is string && isValidId(data.studentId)
+        && data.skill is string
+        && data.points is int
+        && data.timestamp == request.time;
+    }
+
+    // --- Collections ---
+
+    match /students/{studentId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn(); 
+      allow create: if isAdmin() && isValidStudent(incoming());
+      allow update: if (isAdmin() && isValidStudent(incoming())) || (
+        // Allow student to update their team if needed (e.g. initial setup)
+        // In this system, we prefer Admin-only for points/level to prevent cheating
+        isAdmin()
+      );
+      allow delete: if isAdmin();
+    }
+
+    match /teams/{teamId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() && isValidTeam(incoming());
+    }
+
+    match /pointLogs/{logId} {
+      allow read: if isAdmin(); // Only admins can see full audit
+      allow create: if isAdmin() && isValidPointLog(incoming());
+    }
+
+    match /sessions/{sessionId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+  }
+}

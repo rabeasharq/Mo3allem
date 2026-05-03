@@ -1,0 +1,83 @@
+{
+  "entities": {
+    "student": {
+      "title": "Student",
+      "description": "Represents a student in the gamified system.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Student's full name" },
+        "teamId": { "type": "string", "description": "Reference to the team ID" },
+        "grade": { "type": "integer", "description": "Grade level (7, 8, or 9)" },
+        "points": {
+          "type": "object",
+          "properties": {
+            "grammar": { "type": "integer" },
+            "reading": { "type": "integer" },
+            "orthography": { "type": "integer" },
+            "expression": { "type": "integer" },
+            "recitation": { "type": "integer" },
+            "contribution": { "type": "integer" },
+            "discipline": { "type": "integer" },
+            "special": { "type": "integer" }
+          }
+        },
+        "totalPoints": { "type": "integer" },
+        "level": { "type": "string", "enum": ["Beginner", "Advanced", "Professional", "Expert"] },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "teamId", "grade", "points", "totalPoints", "level"]
+    },
+    "team": {
+      "title": "Team",
+      "description": "A group of students competing together.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "totalPoints": { "type": "integer" },
+        "color": { "type": "string" }
+      },
+      "required": ["name", "totalPoints"]
+    },
+    "pointLog": {
+      "title": "Point Log",
+      "description": "History of point awards.",
+      "type": "object",
+      "properties": {
+        "studentId": { "type": "string" },
+        "skill": { "type": "string" },
+        "points": { "type": "integer" },
+        "reason": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["studentId", "skill", "points", "timestamp"]
+    },
+    "session": {
+      "title": "Session",
+      "description": "Live class session state.",
+      "type": "object",
+      "properties": {
+        "activeTaskId": { "type": "string" },
+        "currentChallenge": { "type": "object" },
+        "lastUpdated": { "type": "string", "format": "date-time" }
+      }
+    }
+  },
+  "firestore": {
+    "/students/{studentId}": {
+      "schema": "student",
+      "description": "Individual student data"
+    },
+    "/teams/{teamId}": {
+      "schema": "team",
+      "description": "Team standings"
+    },
+    "/pointLogs/{logId}": {
+      "schema": "pointLog",
+      "description": "Audit trail of points"
+    },
+    "/sessions/{sessionId}": {
+      "schema": "session",
+      "description": "Active session state"
+    }
+  }
+}
